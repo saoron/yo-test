@@ -8,7 +8,7 @@ const baseUrl = 'http://192.168.0.1:12913/';
 let successCount = 0;
 
 // configs
-const totalTests = 1;
+const totalTests = 100;
 const DEBUG = true;
 var sessionId = null;
 
@@ -143,19 +143,17 @@ function stopStream() {
     request(
       {
         uri: baseUrl + 'stopStream',
-        json: true,
         headers: {
           SessionId: sessionId,
         },
-        form: { data: {} },
-
-        method: 'POST',
+        method: 'GET',
       },
       (err, res, body) => {
         if (err) {
           console.error(err);
           reject(err);
         }
+        console.log('stop stream', body);
         if (body && body.error) {
           reject(body.error);
         } else {
