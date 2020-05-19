@@ -12,6 +12,11 @@ const totalTests = 100;
 const DEBUG = true;
 var sessionId = '';
 
+//windos
+var pwd = process.cwd();
+//linux
+//var pwd = process.env.PWD;
+
 main();
 
 async function main() {
@@ -33,8 +38,8 @@ async function main() {
       //wait 10 seconds
       await sleep(10);
 
-      await testStartRecord();
-      await sleep();
+      await testDownloadClip();
+      await sleep(5);
     } catch (e) {
       console.log(colors.red(e));
     }
@@ -47,11 +52,12 @@ async function main() {
 }
 
 // test 1 /startRecord
-function testStartRecord() {
+function testDownloadClip() {
+  console.log('|| > testDownloadClip')
   return new Promise((resolve, reject) => {
     startRecord().then(
       (res) => {
-        if (DEBUG) console.warn(res);
+        if (DEBUG) console.warn('|| > startRecord', res);
         if (res.status == 'failed') {
           console.error('Test Failed: recording_init_failed');
           reject('recording_init_failed');
@@ -59,9 +65,10 @@ function testStartRecord() {
         }
       },
       (err) => {
-        if (DEBUG) console.error(err);
+        if (DEBUG) console.error('|| > startRecord ERR', err);
 
         if (err == 'recording_init_failed') {
+          console.error('====RECOVER=====');
           //recover from fail..
           startRecord().then(
             (res) => {
@@ -71,6 +78,12 @@ function testStartRecord() {
                 reject('recording_init_failed');
                 return;
               }
+
+              listenForGetClips().then(
+                res => resolve(err),
+                err => console.error(err),
+              )
+
             },
             (err) => {
               if (DEBUG) console.error(err);
@@ -85,7 +98,10 @@ function testStartRecord() {
       }
     );
 
-    listenForGetClips();
+    listenForGetClips().then(
+      res => resolve(res),
+      err => console.error(err),
+    )
   });
 }
 
@@ -192,7 +208,7 @@ function startRecord() {
   return new Promise((resolve, reject) => {
     request(baseUrl + 'startRecord', { json: true }, (err, res, body) => {
       if (err) {
-        console.error(err);
+        console.error('startRecord', err);
         reject(err);
         return;
       }
@@ -250,7 +266,7 @@ function verifyTheresNoClipsInTheSystem() {
 function downloadFile(url) {
   return new Promise((resolve, reject) => {
     var file = fs.createWriteStream(
-      process.env.PWD + '/output/' + url.split('/').pop()
+      pwd + '/output/' + url.split('/').pop()
     );
     var request = http
       .get(url, function (response) {
@@ -264,18 +280,18 @@ function downloadFile(url) {
       .on('error', function (err) {
         // Handle errors
         if (DEBUG) console.log(colors.red('Download error', err));
-        fs.unlink(process.env.PWD + '/output/' + url.split('/').pop()); // Delete the file async. (But we don't check the result)
+        fs.unlink(pwd + '/output/' + url.split('/').pop()); // Delete the file async. (But we don't check the result)
         reject(err);
       });
   });
 }
 
 function clearOutPutDir() {
-  fs.readdir(process.env.PWD + '/output/', (err, files) => {
+  fs.readdir(pwd + '/output/', (err, files) => {
     if (err) throw err;
 
     for (const file of files) {
-      fs.unlink(path.join(process.env.PWD + '/output/', file), (err) => {
+      fs.unlink(path.join(pwd + '/output/', file), (err) => {
         if (err) throw err;
       });
     }
