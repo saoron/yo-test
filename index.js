@@ -10,7 +10,7 @@ let successCount = 0;
 // configs
 const totalTests = 100;
 const DEBUG = true;
-var sessionId = null;
+var sessionId = '';
 
 main();
 
@@ -62,12 +62,35 @@ function testStartRecord() {
         if (DEBUG) console.error(err);
 
         if (err == 'recording_init_failed') {
-          reject(err);
-          return;
+          //recover from fail..
+          startRecord().then(
+            (res) => {
+              if (DEBUG) console.warn(res);
+              if (res.status == 'failed') {
+                console.error('Test Failed: recording_init_failed');
+                reject('recording_init_failed');
+                return;
+              }
+            },
+            (err) => {
+              if (DEBUG) console.error(err);
+
+              if (err == 'recording_init_failed') {
+                reject(err);
+                return;
+              }
+            }
+          );
         }
       }
     );
 
+    listenForGetClips();
+  });
+}
+
+function listenForGetClips() {
+  return new Promise((resolve, reject) => {
     setTimeout(() => {
       getClips().then(
         async (res) => {
@@ -153,7 +176,7 @@ function stopStream() {
           console.error(err);
           reject(err);
         }
-        console.log('stop stream', body);
+        console.log('stop stream', 'xxxx: ' + sessionId, body);
         if (body && body.error) {
           reject(body.error);
         } else {
