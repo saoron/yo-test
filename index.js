@@ -8,8 +8,8 @@ const baseUrl = 'http://192.168.0.1:12913/';
 let successCount = 0;
 
 // configs
-const totalTests = 100;
-const DEBUG = true;
+const totalTests = 10;
+const DEBUG = false;
 var sessionId = '';
 
 main();
@@ -21,22 +21,22 @@ async function main() {
   for (var i = 0; i < totalTests; i++) {
     try {
       //startStream
-      console.warn('startStream..');
+      if (DEBUG) console.warn('startStream..');
       await startStream();
       //wait 20 seconds
-      console.warn('startStream..Sleep 20');
+      if (DEBUG) console.warn('startStream..Sleep 20');
       await sleep(20);
       //stopStream
-      console.warn('stopStream');
+      if (DEBUG) console.warn('stopStream');
       await stopStream();
 
       //wait 10 seconds
       await sleep(10);
 
       await testStartRecord();
-      await sleep();
+      await sleep(80);
     } catch (e) {
-      console.log(colors.red(e));
+      console.log(e);
     }
   }
   console.warn('********************************');
@@ -53,9 +53,11 @@ function testStartRecord() {
       (res) => {
         if (DEBUG) console.warn(res);
         if (res.status == 'failed') {
-          console.error('Test Failed: recording_init_failed');
+          if (DEBUG) console.error('Test Failed: recording_init_failed');
           reject('recording_init_failed');
           return;
+        } else {
+          resolve();
         }
       },
       (err) => {
@@ -67,9 +69,11 @@ function testStartRecord() {
             (res) => {
               if (DEBUG) console.warn(res);
               if (res.status == 'failed') {
-                console.error('Test Failed: recording_init_failed');
+                if (DEBUG) console.error('Test Failed: recording_init_failed');
                 reject('recording_init_failed');
                 return;
+              } else {
+                resolve();
               }
             },
             (err) => {
@@ -130,7 +134,7 @@ function getClips() {
   return new Promise((resolve, reject) => {
     request(baseUrl + 'getClips', { json: true }, (err, res, body) => {
       if (err) {
-        console.error(err);
+        if (DEBUG) console.error(err);
         reject(err);
       }
       if (body && body.error) {
@@ -146,15 +150,15 @@ function startStream() {
   return new Promise((resolve, reject) => {
     request(baseUrl + 'startStream', { json: true }, (err, res, body) => {
       if (err) {
-        console.error(err);
+        if (DEBUG) console.error(err);
         reject(err);
       }
 
       if (body && body.error) {
-        console.error(body);
+        if (DEBUG) console.error(body);
         reject(body.error);
       } else {
-        console.log(body);
+        if (DEBUG) console.log(body);
         sessionId = body.sessionId;
         resolve(body);
       }
@@ -173,10 +177,10 @@ function stopStream() {
       },
       (err, res, body) => {
         if (err) {
-          console.error(err);
+          if (DEBUG) console.error(err);
           reject(err);
         }
-        console.log('stop stream', 'xxxx: ' + sessionId, body);
+        if (DEBUG) console.log('stop stream', 'xxxx: ' + sessionId, body);
         if (body && body.error) {
           reject(body.error);
         } else {
@@ -192,7 +196,7 @@ function startRecord() {
   return new Promise((resolve, reject) => {
     request(baseUrl + 'startRecord', { json: true }, (err, res, body) => {
       if (err) {
-        console.error(err);
+        if (DEBUG) console.error(err);
         reject(err);
         return;
       }
@@ -254,6 +258,27 @@ function downloadFile(url) {
     );
     var request = http
       .get(url, function (response) {
+        var startTime = null;
+        response.on('data', function (chunk) {
+          if (!startTime) {
+            startTime = new Date().getTime();
+          }
+        });
+
+        response.on('end', function () {
+          var len = parseInt(response.headers['content-length'], 10) / 1048576; //1048576 - bytes in  1Megabyte
+          var endTime = new Date().getTime();
+          console.log(
+            'download complete, Time: ',
+            (endTime - startTime) / 1000,
+            'len: ',
+            len,
+            'speed: ',
+            len / ((endTime - startTime) / 1000),
+            'mb/s'
+          );
+        });
+
         response.pipe(file);
         file.on('finish', function () {
           if (DEBUG) console.log('Download complete');
@@ -261,6 +286,7 @@ function downloadFile(url) {
           resolve();
         });
       })
+
       .on('error', function (err) {
         // Handle errors
         if (DEBUG) console.log(colors.red('Download error', err));
