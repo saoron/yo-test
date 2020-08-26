@@ -249,6 +249,7 @@ function verifyTheresNoClipsInTheSystem() {
       if (err) {
         console.error(err);
         reject(err);
+        return;
       }
       if (res.error) {
         reject(body.error);
