@@ -35,7 +35,7 @@ async function main() {
       //wait 10 seconds
       await sleep(10);
 
-      await testStartRecord();
+      await testDownloadClip();
       await sleep(80);
     } catch (e) {
       console.log(e);
